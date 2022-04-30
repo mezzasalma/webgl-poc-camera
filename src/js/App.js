@@ -7,7 +7,7 @@ import {
   CameraHelper,
   Vector3,
   Raycaster,
-  Vector2
+  Vector2, Clock
 } from "three";
 import {FBXLoader} from "three/examples/jsm/loaders/FBXLoader";
 
@@ -20,15 +20,14 @@ export class App {
     this.carCameras = []
     this.renderer = null
 
-    this.raycaster = null
-    this.pointer = null
+    this.clock = null
 
     this.dirLight = null
     this.dirLight2 = null
     this.shadowLight = null
 
     this.cameraBtn = null
-    this.cameraOrder = [4, 3, 1, 0, 2, 4]
+    this.cameraOrder = [4, 3, 1, 0, 2]
     this.cameraIndex = 0
 
     console.log("New App created")
@@ -40,6 +39,8 @@ export class App {
     this.scene = new Scene()
     this.raycaster = new Raycaster()
     this.pointer = new Vector2()
+
+    this.clock = new Clock()
 
     this.loader = new FBXLoader()
     this.loader.load(
@@ -61,8 +62,8 @@ export class App {
           }
         })
         this.carCameras = object.children.filter(child => child.name.startsWith('Camera_'))
-        const cameraHelper1 = new CameraHelper(this.carCameras[3]);
-        this.scene.add(cameraHelper1)
+        //const cameraHelper1 = new CameraHelper(this.carCameras[3]);
+        //this.scene.add(cameraHelper1)
 
         object.scale.set(.01, .01, .01)
         this.scene.add(object)
@@ -131,15 +132,6 @@ export class App {
     this.shadowLight.shadow.bias = 0.001
   }
 
-  onPointerMove(event) {
-    // calculate pointer position in normalized device coordinates
-    // (-1 to +1) for both components
-    if (this.pointer) {
-      this.pointer.x = (event.clientX / window.innerWidth) * 2 - 1;
-      this.pointer.y = -(event.clientY / window.innerHeight) * 2 + 1;
-    }
-  }
-
   resizeRendererToDisplaySize() {
     const width = this.canvas.clientWidth;
     const height = this.canvas.clientHeight;
@@ -155,12 +147,7 @@ export class App {
 
     // calculate objects intersecting the picking ray
     this.intersects = this.raycaster.intersectObjects(this.scene.children);
-    this.intersects.forEach(object => {
-      if (object.object.parent && object.object.parent.name === "carosserie") {
-        console.log('found')
-        return
-      }
-    })
+
     //console.log(intersects.filter(object => {
     //  object.name === "carosserie"
     //}))
@@ -174,11 +161,11 @@ export class App {
   }
 
   animate() {
+    this.delta = this.clock.getDelta(); // getDelta()
     window.requestAnimationFrame(this.animate.bind(this))
-    if (this.carCameras.length > 0 && (this.index < this.cameraOrder.length)) {
-      const target = new Vector3(); // create once an reuse it
-      this.camera.position.lerp(this.carCameras[this.cameraOrder[this.index]].getWorldPosition(target), 0.01);
-      //console.log('camera', this.camera.position)
+    if (this.carCameras.length > 0 && (this.cameraIndex < this.cameraOrder.length)) {
+      const target = new Vector3();
+      this.camera.position.lerp(this.carCameras[this.cameraOrder[this.cameraIndex]].getWorldPosition(target), 0.01);
       this.camera.lookAt(0, 0, 0)
     }
 
@@ -198,14 +185,8 @@ export class App {
     console.log("App run")
 
     this.cameraBtn.addEventListener('click', () => {
-      this.index >= 0 ? this.index = 0 : this.index++
+      this.cameraIndex >= this.cameraOrder.length ? this.cameraIndex = 0 : this.cameraIndex++
     })
-
-    document.addEventListener('click', () => {
-      console.log('intersects', this.intersects)
-    })
-
-    window.addEventListener('pointermove', this.onPointerMove);
 
     this.animate()
   }
@@ -217,12 +198,21 @@ export class App {
     this.renderer = null
     this.carCameras = null
 
+    this.clock = null
+
+    this.raycaster = null
+    this.pointer = null
+
     this.dirLight.dispose()
     this.dirLight2.dispose()
     this.shadowLight.dispose()
     this.dirLight = null
     this.dirLight2 = null
     this.shadowLight = null
+
+    this.cameraBtn = null
+    this.cameraOrder = null
+    this.cameraIndex = null
 
     this.canvas = null
   }
